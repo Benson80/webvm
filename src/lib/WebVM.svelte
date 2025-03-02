@@ -468,23 +468,33 @@
 				}
 				case "left_click":
 				{
+					var coords = tool.coordinate;
 					var dc = get(displayConfig);
+					dc.mouseX = coords[0] / dc.mouseMult;
+					dc.mouseY = coords[1] / dc.mouseMult;
 					var display = document.getElementById("display");
 					var clientRect = display.getBoundingClientRect();
 					var me = new MouseEvent('mousedown', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 0 });
 					display.dispatchEvent(me);
-					var me = new MouseEvent('mouseup', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 0 });
+					// This delay prevent X11 logic from debouncing the mouseup
+					await yieldHelper(60)
+					me = new MouseEvent('mouseup', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 0 });
 					display.dispatchEvent(me);
 					return null;
 				}
 				case "right_click":
 				{
+					var coords = tool.coordinate;
 					var dc = get(displayConfig);
+					dc.mouseX = coords[0] / dc.mouseMult;
+					dc.mouseY = coords[1] / dc.mouseMult;
 					var display = document.getElementById("display");
 					var clientRect = display.getBoundingClientRect();
 					var me = new MouseEvent('mousedown', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 2 });
 					display.dispatchEvent(me);
-					var me = new MouseEvent('mouseup', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 2 });
+					// This delay prevent X11 logic from debouncing the mouseup
+					await yieldHelper(60)
+					me = new MouseEvent('mouseup', { clientX: dc.mouseX + clientRect.left, clientY: dc.mouseY + clientRect.top, button: 2 });
 					display.dispatchEvent(me);
 					return null;
 				}
@@ -553,6 +563,14 @@
 							case "Return":
 								await kmsSendChar(textArea, "\n");
 								break;
+							case "Escape":
+								var ke = new KeyboardEvent("keydown", {keyCode: 0x1b});
+								textArea.dispatchEvent(ke);
+								await yieldHelper(0);
+								ke = new KeyboardEvent("keyup", {keyCode: 0x1b});
+								textArea.dispatchEvent(ke);
+								await yieldHelper(0);
+								break;
 							default:
 								// TODO: Support more key combinations
 								ret = new Error(`Error: Invalid key '${tool.text}'`);
@@ -577,6 +595,12 @@
 						await yieldHelper(0);
 					}
 					return ret;
+				}
+				case "wait":
+				{
+					// Wait 2x what the machine expects to compensate for virtualization slowdown
+					await yieldHelper(tool.duration * 2 * 1000);
+					return null;
 				}
 				default:
 				{
